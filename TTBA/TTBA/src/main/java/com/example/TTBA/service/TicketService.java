@@ -9,59 +9,53 @@ import org.springframework.stereotype.Service;
 import com.example.TTBA.model.Ticket;
 import com.example.TTBA.model.User;
 
-
 @Service
 public class TicketService {
-	
-	private final Map<String, Ticket> tickets = new HashMap<>();
-	private final Map<String, User> users = new HashMap<>();
-	private final String[] seats = {"A1", "A2", "B1", "B2"};
-	private int seatIndex =0;
-	
-	
-	public Ticket purchaseTicket(User user) {
-		if(seatIndex >= seats.length) {
-			throw new IllegalStateException("No seats available");
-		}
-		Ticket ticket = new Ticket();
-		ticket.setUser(user);
-		ticket.setSeat(seats[seatIndex++]);
-		String ticketId = UUID.randomUUID().toString();
-		tickets.put(ticketId, ticket);
-		users.put(user.getEmail(), user);
-		return ticket;
-		
-	}
-	
-	public Ticket getTicket(String email)
-	{
-		return tickets.values().stream()
-				.filter(ticket -> ticket.getUser().getEmail().equals(email))
-				.findFirst()
-				.orElse(null);
-	}
-	
-	public Map<String, User> getUserBySection(String section)
-	{
-		Map<String, User> sectionUsers = new HashMap<>();
-		tickets.values().stream()
-		        .filter(ticket -> ticket.getSeat().startsWith(section))
-		        .forEach(ticket -> sectionUsers.put(ticket.getUser().getEmail(),ticket.getUser()));
-		return sectionUsers;
-		
-	}
-	
-	public void removeUser(String email)
-	{
-		tickets.entrySet().removeIf(entry -> entry.getValue().getUser().getEmail().equals(email));
-		users.remove(email);
-	}
-	
-	public void modifySeat(String email, String newSeat)
-	{
-		tickets.values().stream()
-		        .filter(ticket -> ticket.getUser().getEmail().equals(email))
-		        .forEach(ticket -> ticket.setSeat(newSeat));
-	}
 
+    private final Map<String, Ticket> ticketRepository = new HashMap<>();
+
+    public Ticket purchaseTicket(User user) {
+        Ticket ticket = new Ticket();
+        ticket.setFrom("London");
+        ticket.setTo("France");
+        ticket.setUser(user);
+        ticket.setPrice(20);
+        ticket.setSeat(allocateSeat());
+        ticketRepository.put(user.getEmail(), ticket);
+        return ticket;
+    }
+
+    public Ticket getTicket(String email) {
+        return ticketRepository.get(email);
+    }
+
+    public Map<String, User> getUserBySection(String section) {
+        Map<String, User> sectionUsers = new HashMap<>();
+        for (Ticket ticket : ticketRepository.values()) {
+            if (ticket.getSeat().startsWith(section)) {
+                sectionUsers.put(ticket.getUser().getEmail(), ticket.getUser());
+            }
+        }
+        return sectionUsers;
+    }
+
+    public void removeUser(String email) {
+        ticketRepository.remove(email);
+    }
+
+    public void modifySeat(String email, String newSeat) {
+        Ticket ticket = ticketRepository.get(email);
+        if (ticket != null) {
+            ticket.setSeat(newSeat);
+        }
+    }
+
+    private String allocateSeat() {
+        int seatNumber = ticketRepository.size() + 1;
+        if (seatNumber <= 50) {
+            return "A" + seatNumber;
+        } else {
+            return "B" + (seatNumber - 50);
+        }
+    }
 }
